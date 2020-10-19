@@ -1,5 +1,6 @@
 import csv
 import math
+import time
 import pandas as pd
 from itertools import chain, combinations
 
@@ -28,25 +29,26 @@ def clean_data(csv): #clean the data generate by IBM #data_10^4trans
 if __name__ == "__main__":
     df = pd.read_csv('./clean_data.csv')
     df.drop(['customer'], axis = 1, inplace = True)
-    items = df.groupby("item")
+    items = df.groupby("transaction")
     #print(items.groups) #0-962 kinds of items appear in which transaction
     item_dict = items.groups
     trans_list = [] #size = 962, each ele is a list contain the transaction that item appear
+    set_num = 0
     for key in item_dict:
-        trans_list.append(list(item_dict[key]))
+        item_list = []
+        for i in list(item_dict[key]): # The item exist in the transaction
+            item = df['item'][i]
+            item_list.append(item) # The list of item of #key transaction
+        print(item_list)
+        time.sleep(3)
+        for l in range(len(item_list)):
+            if l > 0:
+                for ele in combinations(item_list, l):
+                    print(ele)
+                    set_num += 1
+        print(set_num)
+        time.sleep(3)
+    print(set_num)
     min_conf = 0.75
     min_sup = 0.5
-    set_num = 0
-    for lis in trans_list:
-        for l in range(len(lis)):
-            string = ""
-            if l >0:
-                string += str(lis[i])
-                for ele in combinations(string, l):
-                    print(ele)
-                exit()
-                
-    for i in range(len(trans_list)):
-        single += len(trans_list[i])
-    print(single)
     #Right now there exists a list of set which represents the transaction number that  item which number is the number of ele appears
