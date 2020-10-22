@@ -17,17 +17,21 @@ def clean_kaggle__data():
         item_lis.append(tmp)
     return item_lis
 
-def fit_min_sup(lis):
+def ele_in_seq(lis):
     re_dict = {}
     for ele_ in lis:
         for ele in ele_:
             if (str(ele) in re_dict):
-                re_dict[str(ele )]  = (re_dict[str(ele)][0], re_dict[str(ele )][1]+1)
+                re_dict[str(ele )]  = (re_dict[str(ele)]+1)
             else:
-                re_dict[str(ele )] = (ele, 1)
-    return re_dict
+                re_dict[str(ele )] = (1)
+                #sorted(student_tuples, key=lambda student: student[2]) 
+    return sorted(re_dict, key = lambda num : re_dict[str(num)])
+
+def node():
+    return
 
 if __name__ == "__main__":
     lis = clean_kaggle__data()
-    seq_lis = fit_min_sup(lis)
+    seq_lis = ele_in_seq(lis)
     print(seq_lis)

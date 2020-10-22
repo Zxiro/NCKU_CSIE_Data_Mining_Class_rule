@@ -46,28 +46,33 @@ def clean_data(): #clean the data generate by IBM #data_10^4trans
 
     return item_set
 
-def get_freq_set(set_, trans_num, min_sup, length):
+def get_freq_set(set_, trans_num, min_sup):
     l = 1
     set_dict = {}
+    freq_dict = {}
     for set__ in set_: #list of set
         for ele in combinations(set__, l):
             if len(ele) !=0:
                 ele_ = set((ele))
                 if (str(ele_ ) in set_dict):
                     set_dict[str(ele_ )]  = (set_dict[str(ele_ )][0], set_dict[str(ele_ )][1]+1)
+                    freq_dict[str(ele_ )]  = (freq_dict[str(ele_ )][0], freq_dict[str(ele_ )][1]+1)
                 else:
                     set_dict[str(ele_ )] = (ele_, 1)
+                    freq_dict[str(ele_ )] = (ele_, 1)
             else: break
     l += 1
     set_dict = check_fit_min_sup(set_dict, min_sup, trans_num)
-
-    while l <= length:
+    freq_dict = check_fit_min_sup(freq_dict, min_sup, trans_num)
+    while True:
         _set = set()
         for key in set_dict:
             for e in set_dict[key][0]:
                 _set.add(e)
+        re_dict = set_dict
         set_dict = {}
         tmp_set = list(combinations(_set, l))
+
         for e in range(len(tmp_set)):
             s = set()
             for k in range(len(tmp_set[e])):
@@ -79,19 +84,15 @@ def get_freq_set(set_, trans_num, min_sup, length):
                 if(s & set_[i] == s):
                     if (str(s) in set_dict):
                         set_dict[str(s)]  = (set_dict[str(s)][0], set_dict[str(s)][1]+1)
+                        freq_dict[str(s)]  = (freq_dict[str(s )][0], freq_dict[str(s)][1]+1)
                     else:
                         set_dict[str(s)] = (s, 1)
-
-        if l == length:
-            if len(check_fit_min_sup(set_dict, min_sup, trans_num)) == 0:
-                print("Doesn't exist!")
-                return {}
-            return set_dict
-        
-        set_dict = check_fit_min_sup(set_dict, min_sup, trans_num)
-        if (len(set_dict)==0):
-            print("Doesn't exist!")
-            return {}
+                        freq_dict[str(s)] = (s, 1)
+        ans_dict = check_fit_min_sup(set_dict, min_sup, trans_num)
+        freq_dict = check_fit_min_sup(freq_dict, min_sup, trans_num)
+        if (len(ans_dict)==0):
+            print("finish")
+            return re_dict, freq_dict
         print("Into next length")
         l +=1
     
@@ -101,13 +102,43 @@ def check_fit_min_sup(dict_, min_sup, trans_num):
             dict_.pop(key)
     return dict_
 
+def get_rule_with_conf(freq_set_set, freq_set, min_conf):
+    #for every freq set :
+    #   for every possible set in each freq set without the set itself
+    #          the possbilty = (the times / trans_num) of freq set / the times/ trans_num of the possible set
+    #           if the possbilty > min_conf:
+    #               rule get
+    for fs in freq_set_set:
+        #print(freq_set[fs][0])
+        if len(freq_set[fs][0]) != 1:
+            for l in range(1, len(freq_set[fs][0])+1):
+                s = set()
+                tmp_set = combinations(freq_set[fs][0], l)
+                for i in tmp_set:
+                    if len(i) ==1:
+                        for k in range(len(i)):
+                            s.add(i[k])
+                            print(s)
+                            print(freq_set[fs], freq_set[str(s)])
+                            pos = float(freq_set[fs][1] / freq_set[str(s)][1])
+                            s = set()
+                    else:
+                        for k in range(len(i)):
+                            s.add(i[k])
+                        print(s)
+                        print(freq_set[fs], freq_set[str(s)])
+                        pos = float(freq_set[fs][1] / freq_set[str(s)][1])
+                        s = set()
+                #print(pos)
+    return
     
 if __name__ == "__main__":
     k_ans = {}
     i_ans = {}
     item_set = clean_data()
     k_item_set = clean_kaggle__data()
-    k_ans = get_freq_set(k_item_set, len(k_item_set), 0.01, 4)
-    print(len(k_ans.keys()), k_ans.keys())
-    i_ans = get_freq_set(item_set, len(item_set), 0.004, 2)
-    print(k_ans.keys(), i_ans.keys())
+    k_ans, freq_set= get_freq_set(k_item_set, len(k_item_set), 0.2)
+    get_rule_with_conf(k_ans, freq_set, 1)
+    print(len(k_ans.keys()), [k_ans.keys()])
+    #i_ans = get_freq_set(item_set, len(item_set), 0.01)
+    #print(k_ans.keys(), i_ans.keys())
