@@ -143,7 +143,7 @@ def get_rule_with_conf(freq_set_set, freq_set, min_conf):
 if __name__ == "__main__":
     k_ans = {}
     i_ans = {}
-    min_sup = 0.08
+    min_sup = 0.01
     min_conf = 0.65
     item_set = clean_data()
     k_item_set = clean_kaggle__data()
