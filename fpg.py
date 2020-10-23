@@ -1,6 +1,4 @@
-import re
 import csv
-import math
 import time
 import pandas as pd
 from itertools import chain, combinations
@@ -58,7 +56,6 @@ def ele_in_seq(tran_lis, trans_num, min_sup):
     for key in re_dict:
         if(float(re_dict[key] / trans_num) < min_sup):
             re_dict.pop(key)
-    #sorted(re_dict.items(), key = lambda x : x[1])
     return re_dict
 
 def ele_in_trans_in_seq(tran_lis, feq_dict):
@@ -76,22 +73,64 @@ def ele_in_trans_in_seq(tran_lis, feq_dict):
         tmp_dict = {}
 
     for key in sor_dict:
-        tmp = sorted(sor_dict[key].items(), key = lambda x : x[1])
-        for i in range(len(tmp)):
-            tmp_.append(tmp[i][0])
+        for i in sorted(sor_dict[key].items(), key = lambda x : x[1]):
+            tmp_.append(i[0])
         trans_in_seq.append(tmp_)
         tmp_ = []
     return trans_in_seq
+
 class FPTree(object):
     def __init__(self):
         self._root = FPNode(self, None, None)#The root of fptree is null
+        self._route = {}
+    
+    def add(self, trans): #Add node into tree
+        point = self._root # point to the root
+        for item in trans:
+            next_point = point.search(item)
+            if next_point == None: #If it is a new item 
+                next_point = FPNode(self, item) #Constrcut a new node
+                point.add(next_point) #This node become a child
+            else:
+                next_point.incearse_num()
+            point = next_point
+
 
 class FPNode(object):
     def __init__(self, tree, item, num = 1):
         self._tree = tree
         self._item = item #The item put in the node
         self._num = num #The number of item appears in the whole transaction
+        self._children = {} #
+    
+    def add(self, child): #Add child into node
+        if not child._item in self._children:
+            self._children[str(child)] = child
+            child.parent = self
 
+    def search(self, item):#Search the item exist or not
+        try:
+            return self._children[item] 
+        except KeyError:
+            return None
+
+
+
+
+
+    def get_tree(self): #Return the tree that this node appears
+        return self._tree
+    
+    def get_num(self): #Return the number of this item appeaers
+        return self._num
+
+    def get_item(self): #Return the item
+        return self._item
+
+    def increase_num(self): #Increase the count of the item appears
+        self._num += 1
+
+    
 if __name__ == "__main__":
     #First get freq ele  (check)
     #Second sort the transaction by the decreasing order of the freq ele (check)
@@ -105,3 +144,6 @@ if __name__ == "__main__":
     print(feq_dict)
     trans_in_seq = ele_in_trans_in_seq(tran_lis, feq_dict)
     print(trans_in_seq)
+    t = FPTree()
+    for i in range(len(trans_in_seq)):
+        t.add(trans_in_seq[i])

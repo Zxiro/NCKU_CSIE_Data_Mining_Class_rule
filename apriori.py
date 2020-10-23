@@ -1,6 +1,4 @@
-import re
 import csv
-import math
 import time
 import pandas as pd
 from itertools import chain, combinations
@@ -90,9 +88,6 @@ def get_freq_set(set_, trans_num, min_sup):
         ans_dict = check_fit_min_sup(set_dict, min_sup, trans_num)
         freq_dict = check_fit_min_sup(freq_dict, min_sup, trans_num)
         if (len(ans_dict)==0):
-            #print("finish")
-            return re_dict, freq_dict
-        #print("Into next length")
         l +=1
     
 def check_fit_min_sup(dict_, min_sup, trans_num):
@@ -111,21 +106,16 @@ def get_rule_with_conf(freq_set_set, freq_set, min_conf):
     subtra = set()
     rul_dict = {}
     for fs in freq_set_set: #for all freq set
-        #print(freq_set[fs][0])
         if len(freq_set[fs][0]) != 1:
             for l in range(1, len(freq_set[fs][0])): 
                 tmp_set = combinations(freq_set[fs][0], l)#all possible set of that set
                 for i in tmp_set:
-                    #print(i)
                     for k in range(len(i)):
                         s.add(i[k])
-                    #print(s)
                     if len(s) >= len(freq_set[fs][0]):
                         subtra = s - freq_set[fs][0]
-                        #print(subtra)
                     else:
                         subtra = freq_set[fs][0] - s
-                        #print(subtra)
                     for key in freq_set:
                         if freq_set[key][0] == subtra:
                             pos = float(freq_set[fs][1] / freq_set[key][1])
@@ -133,7 +123,6 @@ def get_rule_with_conf(freq_set_set, freq_set, min_conf):
                         rul_dict[str(s)] = subtra
                     s = set()
                     subtra = set()
-                #print(pos)
     return rul_dict
     
 
