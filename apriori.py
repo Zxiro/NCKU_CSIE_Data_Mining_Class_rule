@@ -3,7 +3,7 @@ import time
 import pandas as pd
 from itertools import chain, combinations
 
-def clean_kaggle__data():
+def clean_kaggle__data():#clean the data get from Kaggle
     df = pd.read_csv('./kaggle_.csv')
     item_lis = []
     for i in range(len(df)):
@@ -43,12 +43,12 @@ def clean_data(): #clean the data generate by IBM #data_10^4trans
 
     return item_set
 
-def get_freq_set(set_, trans_num, min_sup):
+def get_freq_set(set_, trans_num, min_sup):#This function is going to get the set that fit the min_sup
     l = 1
     set_dict = {}
     freq_dict = {}
     for set__ in set_: #list of set
-        for ele in combinations(set__, l):
+        for ele in combinations(set__, l): 
             if len(ele) !=0:
                 ele_ = set((ele))
                 if (str(ele_ ) in set_dict):
@@ -88,25 +88,29 @@ def get_freq_set(set_, trans_num, min_sup):
         ans_dict = check_fit_min_sup(set_dict, min_sup, trans_num)
         freq_dict = check_fit_min_sup(freq_dict, min_sup, trans_num)
         if (len(ans_dict)==0):
+            return freq_dict
         l +=1
     
 def check_fit_min_sup(dict_, min_sup, trans_num):
     for key in list(dict_):
-        if(float(dict_[key][1] / trans_num) < min_sup):
+        if(float(dict_[key][1]) < min_sup):
             dict_.pop(key)
     return dict_
 
-def get_rule_with_conf(freq_set_set, freq_set, min_conf):
+def get_rule_with_conf(freq_set, min_conf):
     #for every freq set :
     #   for every possible set in each freq set without the set itself
     #          the possbilty = (the times / trans_num) of freq set / the times/ trans_num of the possible set
     #           if the possbilty > min_conf:
     #               rule get
+    c = 0
     s = set()
     subtra = set()
     rul_dict = {}
-    for fs in freq_set_set: #for all freq set
-        if len(freq_set[fs][0]) != 1:
+    tt = []
+    for fs in freq_set: #for all freq set
+        #print(fs)
+        if len(freq_set[fs][0]) > 1 :
             for l in range(1, len(freq_set[fs][0])): 
                 tmp_set = combinations(freq_set[fs][0], l)#all possible set of that set
                 for i in tmp_set:
@@ -116,33 +120,53 @@ def get_rule_with_conf(freq_set_set, freq_set, min_conf):
                         subtra = s - freq_set[fs][0]
                     else:
                         subtra = freq_set[fs][0] - s
+                    
                     for key in freq_set:
-                        if freq_set[key][0] == subtra:
+                        if len(freq_set[key][0] - subtra) == 0 :
+                            #print( "s:", s, "sub:", subtra,"sub_num:", freq_set[key][1], "freq_set:",  freq_set[fs][0], "freq_num: ", freq_set[fs][1])
                             pos = float(freq_set[fs][1] / freq_set[key][1])
+                    
                     if (pos >= min_conf):
+                        st = str(s) + "->" + str(subtra)
+                        tt.append(st)
                         rul_dict[str(s)] = subtra
                     s = set()
                     subtra = set()
+    print(sorted(tt))
+    exit()
     return rul_dict
     
-
+def get_sup(dict_, sup, trans_num):
+    for key in dict_:
+        print(dict_[key][0], " : ", float(dict_[key][1]/trans_num))
 
 
 
 if __name__ == "__main__":
     k_ans = {}
     i_ans = {}
-    min_sup = 0.01
-    min_conf = 0.65
-    item_set = clean_data()
+    min_sup = 2
+    min_conf = 0.75
+    #item_set = clean_data()
     k_item_set = clean_kaggle__data()
     print("Start_kaggle")
-    k_ans, freq_set= get_freq_set(k_item_set, len(k_item_set), min_sup)
-    ru = get_rule_with_conf(k_ans, freq_set, min_conf)
-    print("With min_sup: ", min_sup ,", min_conf: ", min_conf,  "The ass rule is: ", ru)
-    print("The freq_sets: ", k_ans.keys())
-    print("Start_ibm")
-    i_ans, freq_set= get_freq_set(item_set, len(item_set), min_sup)
-    ru = get_rule_with_conf(i_ans, freq_set, min_conf)
-    print("With min_sup: ", min_sup ,", min_conf: ", min_conf,  "The ass rule is: ", ru)
-    print(("The freq_sets: ", i_ans.keys()))
+    freq_set= get_freq_set(k_item_set, len(k_item_set), min_sup)
+    #get_sup(freq_set, min_sup, len(k_item_set))
+    print(len(freq_set))
+    ru = get_rule_with_conf(freq_set, min_conf)
+    ans = []
+    for key in ru:
+        tmp = [key, " -> ", ru[key]]
+        ans.append(tmp)
+    print(ans)
+    exit()
+    print("With min_sup: ", min_sup ,", min_conf: ", min_conf,  "The ass rule is: ", ans)
+    '''print("Start_ibm")
+    freq_set= get_freq_set(item_set, len(item_set), min_sup)
+    get_sup(freq_set, min_sup, len(item_set))
+    ru = get_rule_with_conf(freq_set, min_conf)
+    ans = []
+    for key in ru:
+        tmp = [key, " -> ", ru[key]]
+        ans.append(tmp)
+    #print("With min_sup: ", min_sup ,", min_conf: ", min_conf,  "The ass rule is: ", ans)'''
