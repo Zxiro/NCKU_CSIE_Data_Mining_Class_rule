@@ -1,9 +1,7 @@
 import csv
-import time
 import pandas as pd
-import numpy as np
 from itertools import chain, combinations
-from collections import namedtuple, OrderedDict 
+from collections import namedtuple
 
 def clean_kaggle__data():
     df = pd.read_csv('./kaggle_.csv')
@@ -47,17 +45,17 @@ def clean_data(): #clean the data generate by IBM #data_10^4trans
 
 def ele_in_seq(tran_lis, trans_num, min_sup):
     re_dict = {}
-
+    ans_dict = {}
     for ele_ in tran_lis:
         for ele in ele_:
             if (str(ele) in re_dict):
-                re_dict[str(ele )]  = (re_dict[str(ele)]+1)
+                re_dict[str(ele)]  = (re_dict[str(ele)]+1)
             else:
-                re_dict[str(ele )] = (1)
+                re_dict[str(ele)] = (1)
     for key in re_dict:
-        if(re_dict[key] < min_sup):
-            re_dict.pop(key)
-    return re_dict
+        if(float(re_dict[key]/trans_num)>= min_sup):
+           ans_dict[key] = re_dict[key]
+    return ans_dict
 
 def ele_in_trans_in_seq(tran_lis, feq_dict):
     trans_in_seq = []
@@ -70,7 +68,6 @@ def ele_in_trans_in_seq(tran_lis, feq_dict):
                 if(e == set_):
                     tmp_dict[str(e)] = feq_dict[set_] #出現次數
                     break
-        #sor_dict[str(tran)] = (tmp_dict)
         sor_dict.append(tmp_dict)
         tmp_dict = {}
     for set_ in sor_dict:
@@ -81,18 +78,6 @@ def ele_in_trans_in_seq(tran_lis, feq_dict):
         tmp_ = []
 
     return trans_in_seq
-
-def get_freq_item(tree, tran_lis):
-    # for item in tree:
-    #   generate all paths that contain the item
-    #   if the sup of that path >= min_sup:
-    #    get the sup of that path
-    for item in tree.items():#Every item in the tree
-        print(tree._route[item])
-    exit()
-    pass
-
-
 
 def build_cond_tree(paths):
     cond_tree = FPTree()
@@ -124,22 +109,17 @@ def build_cond_tree(paths):
 
     return cond_tree
 
-def find_with_suffix(tree, suffix): #suffix 後綴
-        #print(tree.items()) #for all item in the tree
-        for item in tree.items():
-            #print(item)
-            #support = sum(n.count for n in nodes) #這個item 出現幾次
-            total_sup = tree.get_total_sup(item)
-            #print(tree.get_total_sup(item))
-            if total_sup >= min_sup and item not in suffix: #確定是leaf
-                # New winner!
+def find_with_suffix(tree, suffix, trans_num): #suffix 後綴
+        for item in tree.items():#for all item in the tree
+            total_sup = float(tree.get_total_sup(item)/trans_num)#item support
+            if total_sup >= min_sup and item not in suffix:
                 found_set = [item] + suffix #Beer
                 yield (found_set, total_sup)
                 #(JAM, 2), ([Beer, cold], 2)
                 # Build a conditional tree and recursively search for frequent
                 # itemsets within it.
                 cond_tree = build_cond_tree(tree.get_all_path(item))
-                for s in find_with_suffix(cond_tree, found_set):
+                for s in find_with_suffix(cond_tree, found_set, trans_num):
                     yield s # pass along the good news to our caller
 
 def get_rule_with_conf(freq_set, min_conf):
@@ -150,8 +130,6 @@ def get_rule_with_conf(freq_set, min_conf):
     #               rule get
     s = set()
     subtra = set()
-    rul_dict = {}
-    c = 0
     tt = []
     for fs in freq_set: #for all freq set
         #print(fs)
@@ -164,22 +142,23 @@ def get_rule_with_conf(freq_set, min_conf):
                     if len(s) >= len(freq_set[fs][0]):
                         subtra = s - freq_set[fs][0]
                     else:
-                        subtra = freq_set[fs][0] - s #
-                    #print( "s:", s, "sub:", subtra, "freq_set:",  freq_set[fs][0])
+                        subtra = freq_set[fs][0] - s 
+
                     for key in freq_set: #分子是母set的出現次數, 分母是該set的出現次數
                         if freq_set[key][0] == subtra:
-                            #print( "s:", s, "sub:", subtra,"sub_num:", freq_set[key][1], "freq_set:",  freq_set[fs][0], "freq_num: ", freq_set[fs][1])
+                            print( "s:", s, "sub:", subtra,"sub_num:", freq_set[key][1], "freq_set:",  freq_set[fs][0], "freq_num: ", freq_set[fs][1])
                             pos = float(freq_set[fs][1] / freq_set[key][1])
                     if (pos >= min_conf):
                         st = str(s) + "->" + str(subtra)
                         tt.append(st)
-                        rul_dict[str(s)] = subtra
                     s = set()
                     subtra = set()
-    print(sorted(tt))
-    exit()
-    return rul_dict
+    ans = sorted(tt)
+    return ans
 
+def get_sup(dict_, sup, trans_num):
+    for key in dict_:
+        print(dict_[key][0], " : ", float(dict_[key][1]/trans_num))
 
 class FPTree(object):
 
@@ -207,38 +186,13 @@ class FPTree(object):
                 next_point.increase_num()
             init_point = next_point
 
-    def update_route(self, node): #Since it is a new node go into the tree, so the route of the item must be updated
-        
+    def update_route(self, node): #Since it is a new node go into the tree, so the route of the item must be updated 
         try: #If there exist a route that contains the item of the node, then the tail of the route will be that item and it's neighbor will be it too
             present_route = self._route[node._item]
             present_route[1]._neighbor = node
             self._route[node._item] = self.route(present_route[0], node)
         except KeyError: #New node so the route does not exist and that item will be the head of the route
             self._route[node._item] = self.route(node, node) #The node will be the head and the tail of the route
-
-    def build_freq_dict(self, lis):
-        freq_dict = {}
-        re_dict = {}
-        tmp = []
-        concat_tree = FPTree()
-        for l in lis: #l for each path
-            try:
-                for ele in l:
-                    if (ele._item in re_dict):
-                        re_dict[ele._item]  += ele.get_freq_num()
-                    else:
-                        re_dict[ele._item] = ele.get_freq_num()
-                tmp.append(re_dict)
-                re_dict = {}
-            except TypeError:
-                continue
-        print(tmp)
-        print(re_dict)
-        exit()
-        for key in re_dict:
-            if re_dict[key]>= min_sup:
-                freq_dict[key]  = re_dict[key]
-        return freq_dict
 
     def get_all_path(self, item):
         #print('head', self._route[item][0]._item, self._route[item][0], self._route[item][0].get_num() )
@@ -274,6 +228,7 @@ class FPTree(object):
 
     def get_root(self):
         return self._root
+
 class FPNode(object):
     def __init__(self, tree, item, num = 1):
         self._tree = tree
@@ -293,18 +248,12 @@ class FPNode(object):
             return self._children[item] 
         except KeyError:
             return None
-
-    def get_tree(self): #Return the tree that this node appears
-        return self._tree
     
     def get_num(self): #Return the number of this item appeaers
         if self == None:
             return 0 
         else:
             return self._num
-    
-    def get_item(self): #Return the item
-        return self._item
 
     def get_neighbor(self): #Return the neighbor of the node -> neighbor is the same item 
         return self._neighbor
@@ -315,40 +264,45 @@ class FPNode(object):
     def increase_num(self): #Increase the count of the item appears
         self._num += 1
 
+
 if __name__ == "__main__":
-    min_sup = 2
-    min_conf = 0.75
-    tran_lis = clean_kaggle__data()#print(tran_lis)
-    feq_dict = ele_in_seq(tran_lis, len(tran_lis), min_sup)#print(feq_dict)
+    min_sup = 0.15
+    min_conf = 0
+    tran_lis = clean_kaggle__data()
+    i_tran_lis = clean_data()
+    print("Start_kaggle")
+    feq_dict = ele_in_seq(tran_lis, len(tran_lis), min_sup)
     trans_in_seq = ele_in_trans_in_seq(tran_lis, feq_dict)
-    #print(trans_in_seq)#List of list -> [[A, B, C], [C, D, F]....]
     t = FPTree() #Init FPtree
     for i in range(len(trans_in_seq)):
         t.add_trans(trans_in_seq[i]) #Add transaction into tree
     for ele in sorted(feq_dict.items(), key = lambda s : s[1]):
-        build_cond_tree(t.get_all_path(ele[0]))
-         # Search for frequent itemsets, and yield the results we find.
+        build_cond_tree(t.get_all_path(ele[0]))# Search for frequent itemsets, and yield the results we find.
     result = []
-    for itemset in find_with_suffix(t, []):
+    for itemset in find_with_suffix(t, [], len(tran_lis)):
         result.append(itemset)
-    result = sorted(result, key=lambda i: i[0])
     cond = {}
-    
-    for itemset, support in result:
-        #print (str(itemset) + ' ' + str(support))
+    for itemset, support in sorted(result, key=lambda i: i[0]):
+        cond[str(set(itemset))] = (set(itemset), support)
+    ru = get_rule_with_conf(cond, min_conf)
+    print("With min_sup: ", min_sup ,", min_conf: ", min_conf,  "The ass rule is: ", ru)
+
+    exit()
+
+    print("Start IBM")
+    feq_dict = ele_in_seq(i_tran_lis, len(i_tran_lis), min_sup)
+    trans_in_seq = ele_in_trans_in_seq(i_tran_lis, feq_dict)
+    t = FPTree() #Init FPtree
+    for i in range(len(trans_in_seq)):
+        t.add_trans(trans_in_seq[i]) #Add transaction into tree
+    for ele in sorted(feq_dict.items(), key = lambda s : s[1]):
+        build_cond_tree(t.get_all_path(ele[0])) # Search for frequent itemsets, and yield the results we find.
+    result = []
+    for itemset in find_with_suffix(t, [], len(i_tran_lis)):
+        result.append(itemset)
+    cond = {}
+    for itemset, support in sorted(result, key=lambda i: i[0]):
         cond[str(set(itemset))] = (set(itemset), support)
     print(len(cond))
-    def get_sup(dict_, sup, trans_num):
-        for key in dict_:
-            print(dict_[key][0], " : ", float(dict_[key][1]/trans_num))
-    #get_sup(cond, min_sup, len(tran_lis))
     ru = get_rule_with_conf(cond, min_conf)
-    print(ru)
-    exit()
-    ans = []
-    for key in ru:
-        tmp = [key, " -> ", ru[key]]
-        ans.append(tmp)
-    print(ans)
-    exit()
-    print("With min_sup: ", min_sup ,", min_conf: ", min_conf,  "The ass rule is: ", ans)
+    print("With min_sup: ", min_sup ,", min_conf: ", min_conf,  "The ass rule is: ", ru)
