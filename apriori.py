@@ -1,4 +1,5 @@
 import csv
+import time
 import pandas as pd
 from itertools import chain, combinations
 
@@ -15,8 +16,6 @@ def clean_kaggle__data():#clean the data get from Kaggle
     return item_lis
 
 def clean_data(): #clean the data generate by IBM #data_10^4trans
-    #print(item_set)# The list of set of each transaction
-    #print(len(item_set))# The number of all transaction
     df = pd.read_csv('./AR.csv')
     df['transaction'] = ""
     df['item'] = ""
@@ -40,13 +39,14 @@ def clean_data(): #clean the data generate by IBM #data_10^4trans
             tmp.add(item) # The list of item of #key transaction
         item_set.append(tmp)
 
-    return item_set
+    return item_set#(item_set)# The list of set of each transaction (len(item_set))# The number of all transaction
+    
 
 def get_freq_set(set_, trans_num, min_sup):#This function is going to get the set that fit the min_sup
     l = 1
     set_dict = {}
-    freq_dict = {}
-    for set__ in set_: #list of set
+    freq_dict = {} #Contain all set that fit min_sup
+    for set__ in set_: #list of set, get the single ele that fit the min_sup
         for ele in combinations(set__, l): 
             if len(ele) !=0:
                 ele_ = set((ele))
@@ -65,9 +65,8 @@ def get_freq_set(set_, trans_num, min_sup):#This function is going to get the se
         for key in set_dict:
             for e in set_dict[key][0]:
                 _set.add(e)
-        re_dict = set_dict
         set_dict = {}
-        tmp_set = list(combinations(_set, l))
+        tmp_set = list(combinations(_set, l))#Generate all possible set 
 
         for e in range(len(tmp_set)):
             s = set()
@@ -84,9 +83,9 @@ def get_freq_set(set_, trans_num, min_sup):#This function is going to get the se
                     else:
                         set_dict[str(s)] = (s, 1)
                         freq_dict[str(s)] = (s, 1)
-        ans_dict = check_fit_min_sup(set_dict, min_sup, trans_num)
+        set_dict = check_fit_min_sup(set_dict, min_sup, trans_num) #Get the partcular length of freq set
         freq_dict = check_fit_min_sup(freq_dict, min_sup, trans_num)
-        if (len(ans_dict)==0):
+        if (len(set_dict)==0):#Get the longest freq set
             return freq_dict
         l +=1
     
@@ -99,9 +98,9 @@ def check_fit_min_sup(dict_, min_sup, trans_num):
 
 def get_rule_with_conf(freq_set, min_conf, trans_num):
     #for every freq set :
-    #   for every possible set in each freq set without the set itself
-    #          the possbilty = (the times / trans_num) of freq set / the times/ trans_num of the possible set
-    #           if the possbilty > min_conf:
+    #   for every possible set in each freq set without the set itself:
+    #          the possbilty = (the times / trans_num) of freq set / (the times/ trans_num) of the possible set
+    #           if the possbilty >= min_conf:
     #               rule get
     s = set()
     subtra = set()
@@ -121,11 +120,10 @@ def get_rule_with_conf(freq_set, min_conf, trans_num):
                     
                     for key in freq_set:
                         if len(freq_set[key][0] - subtra) == 0 :
-                            print( "s:", s, "sub:", subtra,"sub_num:", float(freq_set[key][1]/trans_num), "freq_set:",  freq_set[fs][0], "freq_num: ", float(freq_set[fs][1]/trans_num))
                             pos = float((freq_set[fs][1]/trans_num) / (freq_set[key][1]/trans_num))
                     
                     if (pos >= min_conf):
-                        st = str(s) + "->" + str(subtra)
+                        st = str(s) + "->" + str(subtra) #Get rule
                         tt.append(st)
                     s = set()
                     subtra = set()
@@ -136,20 +134,23 @@ def get_sup(dict_, sup, trans_num):
     for key in dict_:
         print(dict_[key][0], " : ", float(dict_[key][1]/trans_num))
 
-
-
 if __name__ == "__main__":
     min_sup = 0.15
-    min_conf = 0
+    min_conf = 0.5
     item_set = clean_data()
     k_item_set = clean_kaggle__data()
     print("Start_kaggle")
+    start = time.time()
     freq_set= get_freq_set(k_item_set, len(k_item_set), min_sup)
     ru = get_rule_with_conf(freq_set, min_conf, len(k_item_set))
+    end = time.time()
     print("With min_sup: ", min_sup ,", min_conf: ", min_conf,  "The ass rule is: ", ru)
-
+    print("Apriori_kaggle_dataset_runtime: ", end-start)
 
     print("Start_ibm")
+    start = time.time()
     freq_set= get_freq_set(item_set, len(item_set), min_sup)
     ru = get_rule_with_conf(freq_set, min_conf, len(item_set))
+    end = time.time()
     print("With min_sup: ", min_sup ,", min_conf: ", min_conf,  "The ass rule is: ", ru)
+    print("Apriori_IBM_dataset_runtime: ", end-start)

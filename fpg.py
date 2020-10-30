@@ -1,4 +1,5 @@
 import csv
+import time
 import pandas as pd
 from itertools import chain, combinations
 from collections import namedtuple
@@ -15,9 +16,7 @@ def clean_kaggle__data():
         item_lis.append(tmp)
     return item_lis
 
-def clean_data(): #clean the data generate by IBM #data_10^4trans
-    #print(item_set)# The list of set of each transaction
-    #print(len(item_set))# The number of all transaction
+def clean_data(): #clean the data generate by IBM
     df = pd.read_csv('./AR.csv')
     df['transaction'] = ""
     df['item'] = ""
@@ -30,7 +29,7 @@ def clean_data(): #clean the data generate by IBM #data_10^4trans
 
     df.drop(["tmp"], inplace = True, axis = 1)
 
-    items = df.groupby("transaction")  #print(items.groups) #0-962 kinds of items appear in which transaction
+    items = df.groupby("transaction")
     item_dict = items.groups
     item_set = []
 
@@ -43,7 +42,7 @@ def clean_data(): #clean the data generate by IBM #data_10^4trans
 
     return item_set
 
-def ele_in_seq(tran_lis, trans_num, min_sup):
+def ele_in_seq(tran_lis, trans_num, min_sup):#Get the set that fit the min_sup
     re_dict = {}
     ans_dict = {}
     for ele_ in tran_lis:
@@ -56,13 +55,12 @@ def ele_in_seq(tran_lis, trans_num, min_sup):
         if(float(re_dict[key]/trans_num)>= min_sup):
            ans_dict[key] = re_dict[key]
     return ans_dict
-
-def ele_in_trans_in_seq(tran_lis, feq_dict):
+def ele_in_trans_in_seq(tran_lis, feq_dict):#Order the transaction with the decreasing order of the item 
     trans_in_seq = []
     tmp_ = []
     sor_dict = []
     tmp_dict = {}
-    for tran in tran_lis: #type(tran) = set
+    for tran in tran_lis:
         for e in tran:
             for set_ in feq_dict:
                 if(e == set_):
@@ -123,11 +121,6 @@ def find_with_suffix(tree, suffix, trans_num): #suffix 後綴
                     yield s # pass along the good news to our caller
 
 def get_rule_with_conf(freq_set, min_conf):
-    #for every freq set :
-    #   for every possible set in each freq set without the set itself
-    #          the possbilty = (the times / trans_num) of freq set / the times/ trans_num of the possible set
-    #           if the possbilty > min_conf:
-    #               rule get
     s = set()
     subtra = set()
     tt = []
@@ -146,7 +139,6 @@ def get_rule_with_conf(freq_set, min_conf):
 
                     for key in freq_set: #分子是母set的出現次數, 分母是該set的出現次數
                         if freq_set[key][0] == subtra:
-                            print( "s:", s, "sub:", subtra,"sub_num:", freq_set[key][1], "freq_set:",  freq_set[fs][0], "freq_num: ", freq_set[fs][1])
                             pos = float(freq_set[fs][1] / freq_set[key][1])
                     if (pos >= min_conf):
                         st = str(s) + "->" + str(subtra)
@@ -168,7 +160,7 @@ class FPTree(object):
         self._root = FPNode(self, None, None)#The root of fptree is null
         self._route = {}
 
-    def items(self):
+    def items(self):#The items of this FPtree contains
         item_lis = {}
         for r in self._route:
             item_lis[r] = self._route[r]
@@ -194,8 +186,7 @@ class FPTree(object):
         except KeyError: #New node so the route does not exist and that item will be the head of the route
             self._route[node._item] = self.route(node, node) #The node will be the head and the tail of the route
 
-    def get_all_path(self, item):
-        #print('head', self._route[item][0]._item, self._route[item][0], self._route[item][0].get_num() )
+    def get_all_path(self, item):#Get all path in this FPtree
         head = self._route[item][0]
         total_list = []
         while True:
@@ -267,10 +258,11 @@ class FPNode(object):
 
 if __name__ == "__main__":
     min_sup = 0.15
-    min_conf = 0
+    min_conf = 0.5
     tran_lis = clean_kaggle__data()
     i_tran_lis = clean_data()
     print("Start_kaggle")
+    start = time.time()
     feq_dict = ele_in_seq(tran_lis, len(tran_lis), min_sup)
     trans_in_seq = ele_in_trans_in_seq(tran_lis, feq_dict)
     t = FPTree() #Init FPtree
@@ -285,11 +277,12 @@ if __name__ == "__main__":
     for itemset, support in sorted(result, key=lambda i: i[0]):
         cond[str(set(itemset))] = (set(itemset), support)
     ru = get_rule_with_conf(cond, min_conf)
+    end = time.time()
     print("With min_sup: ", min_sup ,", min_conf: ", min_conf,  "The ass rule is: ", ru)
-
-    exit()
+    print("FPG_kaggle_dataset_runtime: ", end-start)
 
     print("Start IBM")
+    start = time.time()
     feq_dict = ele_in_seq(i_tran_lis, len(i_tran_lis), min_sup)
     trans_in_seq = ele_in_trans_in_seq(i_tran_lis, feq_dict)
     t = FPTree() #Init FPtree
@@ -303,6 +296,7 @@ if __name__ == "__main__":
     cond = {}
     for itemset, support in sorted(result, key=lambda i: i[0]):
         cond[str(set(itemset))] = (set(itemset), support)
-    print(len(cond))
     ru = get_rule_with_conf(cond, min_conf)
+    end = time.time()
     print("With min_sup: ", min_sup ,", min_conf: ", min_conf,  "The ass rule is: ", ru)
+    print("FPG_IBM_dataset_runtime: ", end-start)
